@@ -1,6 +1,6 @@
 {
 	"name": "jstree",
-	"repo": "vakata/jstree",
+	"repo": "lowbase/jstree",
 	"description": "jsTree is jquery plugin, that provides interactive trees.",
 	"version": "3.3.0",
 	"license": "MIT",

@@ -5666,7 +5666,7 @@
 					"separator_before"	: false,
 					"separator_after"	: true,
 					"_disabled"			: false, //(this.check("create_node", data.reference, {}, "last")),
-					"label"				: "Просмотр",
+					"label"				: "Просмотреть",
 					"action"			: function (data) {
 					}
 				},

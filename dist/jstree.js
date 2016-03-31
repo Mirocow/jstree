@@ -62,6 +62,12 @@
 	_node.appendChild(_temp1);
 	_temp1 = _temp2 = null;
 
+    function getid(name){   // Получение id документа дерева из скобок
+        var begin = name.lastIndexOf("(")+1;
+        var end = name.lastIndexOf(")");
+        var id = name.substring(begin, end);
+        return id;
+    }
 
 	/**
 	 * holds all jstree related functions and variables, including the actual class and methods to create, access and manipulate instances.
@@ -3673,9 +3679,9 @@
 			if(!pos.toString().match(/^(before|after)$/) && !is_loaded && !this.is_loaded(par)) {
 				return this.load_node(par, function () { this.create_node(par, node, pos, callback, true); });
 			}
-			if(!node) { node = { "text" : this.get_string('New node') }; }
+			if(!node) { node = { "text" : this.get_string('Новый документ (?)') }; }
 			if(typeof node === "string") { node = { "text" : node }; }
-			if(node.text === undefined) { node.text = this.get_string('New node'); }
+			if(node.text === undefined) { node.text = this.get_string('Новый документ (?)'); }
 			var tmp, dpc, i, j;
 
 			if(par.id === $.jstree.root) {
@@ -5665,31 +5671,66 @@
 				"view" : {
 					"separator_before"	: false,
 					"separator_after"	: true,
-					"_disabled"			: false, //(this.check("create_node", data.reference, {}, "last")),
+                    "_disabled"			: function (data) {
+                        var inst = $.jstree.reference(data.reference),
+                            obj = inst.get_node(data.reference);
+                        var id = getid(obj.text);
+                        if (id == "?"){    // Нельзя просмотреть новый документ
+                            return true;
+                        } else{
+                            return false;
+                        }
+                    },
 					"label"				: "Просмотреть",
-					"action"			: function (data) {
-					}
+                    "action"			: function (data) {
+                        var inst = $.jstree.reference(data.reference),
+                            obj = inst.get_node(data.reference);
+                        var id = getid(obj.text);
+                        window.location.href = "/admin/document/view?id="+id;   // Редирект на страницу просмотра при нажатии
+                    }
 				},
 				"edit" : {
 					"separator_before"	: false,
 					"separator_after"	: true,
-					"_disabled"			: false, //(this.check("create_node", data.reference, {}, "last")),
-					"label"				: "Редактировать",
-					"action"			: function (data) {
-					}
+                    "_disabled"			: function (data) {
+                        var inst = $.jstree.reference(data.reference),
+                            obj = inst.get_node(data.reference);
+                        var id = getid(obj.text);
+                        if (id == "?"){    // Нельзя редактировать новый документ
+                            return true;
+                        }
+                        else{
+                            return false;
+                        }
+                    },
+                    "label"				: "Редактировать",
+                    "action"			: function (data) {
+                        var inst = $.jstree.reference(data.reference),
+                            obj = inst.get_node(data.reference);
+                        var id = getid(obj.text);
+                        window.location.href = "/admin/document/update?id=" + id;   // Редирект на страницу редактирования документа
+                    }
 				},
 				"create" : {
 					"separator_before"	: false,
 					"separator_after"	: true,
-					"_disabled"			: false, //(this.check("create_node", data.reference, {}, "last")),
+					"_disabled"			: function (data) {
+                        var inst = $.jstree.reference(data.reference),
+                            obj = inst.get_node(data.reference);
+                        var id = getid(obj.text);
+                        if (id == "?"){
+                            return true;
+                        } else{
+                            return false;
+                        }
+                    },
 					"label"				: "Создать дочерний",
-					"action"			: function (data) {
-						var inst = $.jstree.reference(data.reference),
-							obj = inst.get_node(data.reference);
-						inst.create_node(obj, {}, "last", function (new_node) {
-							setTimeout(function () { inst.edit(new_node); },0);
-						});
-					}
+                    "action"			: function (data) {
+                        var inst = $.jstree.reference(data.reference),
+                            obj = inst.get_node(data.reference);
+                        var id = getid(obj.text);
+                        window.location.href = "/admin/document/create?parent_id=" + id;    // Редирект на страницу создания документа с предустановленным родителем
+                    }
 				},
 				"remove" : {
 					"separator_before"	: false,
@@ -5698,14 +5739,33 @@
 					"_disabled"			: false, //(this.check("delete_node", data.reference, this.get_parent(data.reference), "")),
 					"label"				: "Удалить",
 					"action"			: function (data) {
-						var inst = $.jstree.reference(data.reference),
-							obj = inst.get_node(data.reference);
-						if(inst.is_selected(obj)) {
-							inst.delete_node(inst.get_selected());
-						}
-						else {
-							inst.delete_node(obj);
-						}
+                        var inst = $.jstree.reference(data.reference),
+                            obj = inst.get_node(data.reference);
+                        if(inst.is_selected(obj)) {
+                            var id = getid(obj.text);
+                            var parent = inst.get_parent(obj);
+                            if (id =="?"){
+                                window.location.href = "/admin/";
+                            }
+                            else {
+                                $.ajax({
+                                    url: "/admin/document/delete?id="+id,
+                                    success: function(data){
+                                        inst.delete_node(inst.get_selected());
+                                        var isparent = inst.is_parent(parent);
+                                        if (!isparent){
+                                            inst.set_icon(parent,'glyphicon glyphicon-file');
+                                        }
+                                        if (id == getparam("id")){  // Редирект на главную страницу если удаляем редактируемый документ
+                                            window.location.href = "/admin/";
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                        else {
+                            inst.delete_node(obj);
+                        }
 					}
 				}
 			};
@@ -7955,7 +8015,7 @@
 				}
 				if(!node) { node = {}; }
 				var tmp, n, dpc, i, j, m = this._model.data, s = this.settings.unique.case_sensitive, cb = this.settings.unique.duplicate;
-				n = tmp = this.get_string('New node');
+				n = tmp = this.get_string('Новый документ (?)');
 				dpc = [];
 				for(i = 0, j = par.children.length; i < j; i++) {
 					dpc.push(s ? m[par.children[i]].text : m[par.children[i]].text.toLowerCase());
